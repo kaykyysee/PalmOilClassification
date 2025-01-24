@@ -3,6 +3,8 @@ from ultralytics import YOLO
 import cv2
 from PIL import Image
 import numpy as np
+import os
+import requests
 
 st.set_page_config(layout="wide")
 
@@ -14,11 +16,15 @@ class_colors = {
     'Raw': (255, 0, 0)             # Blue
 }
 
-# Load YOLO model
+# Function to load YOLO model from a URL
 @st.experimental_singleton
-def load_model(model_path: str):
-    model = YOLO(model_path)  # Load YOLO model from local file
-    return model
+def load_model(model_url: str):
+    model_path = "best.pt"
+    if not os.path.exists(model_path):
+        st.write("Downloading model...")
+        with open(model_path, "wb") as f:
+            f.write(requests.get(model_url).content)
+    return YOLO(model_path)
 
 # Inference function
 def infer_image(image, model, conf_threshold):
@@ -32,14 +38,15 @@ def main():
     st.title('Palm Oil Detection and Counting')
     st.sidebar.title("Settings")
 
-    # Upload YOLO weight file
-    model_path = st.sidebar.file_uploader("Upload a YOLO model (.pt)", type=['pt'])
-    if not model_path:
-        st.warning("Please upload a YOLO model to continue.")
-        return
+    # URL to download YOLO model
+    model_url = st.sidebar.text_input("Enter model URL:", "https://your-cloud-storage-url/best.pt")
 
-    # Load model
-    model = load_model(model_path)
+    # Load YOLO model
+    if model_url:
+        model = load_model(model_url)
+    else:
+        st.warning("Please provide a valid URL for the YOLO model.")
+        return
 
     # Confidence slider
     conf_threshold = st.sidebar.slider("Confidence Threshold", min_value=0.1, max_value=1.0, value=0.5)
