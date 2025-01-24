@@ -1,5 +1,9 @@
+# Streamlit dependencies
 streamlit
+
+# YOLO and vision dependencies
 ultralytics
 opencv-python-headless
 pillow
 numpy
+requests
