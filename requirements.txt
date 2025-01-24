@@ -5,6 +5,6 @@ pillow
 numpy
 
 torch==<2.0.1>+cpu
-torchvision==<your_version>+cpu
-torchaudio==<your_version>+cpu
+torchvision==<2.0.1>+cpu
+torchaudio==<2.0.1>+cpu
 --index-url https://download.pytorch.org/whl/cpu
