@@ -3,7 +3,6 @@ from ultralytics import YOLO
 import cv2
 from PIL import Image
 import numpy as np
-import torch
 
 st.set_page_config(layout="wide")
 
@@ -15,17 +14,16 @@ class_colors = {
     'Raw': (255, 0, 0)             # Blue
 }
 
-# Load YOLO model dynamically
+# Load YOLO model
 @st.experimental_singleton
-def load_model(model_path: str, device: str):
-    model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)
-    model.to(device)
+def load_model(model_path: str):
+    model = YOLO(model_path)  # Load YOLO model from local file
     return model
 
 # Inference function
 def infer_image(image, model, conf_threshold):
     model.conf = conf_threshold
-    results = model(image)
+    results = model(image)  # Perform inference
     results.render()  # Render annotations to the image
     return Image.fromarray(results.ims[0])
 
@@ -34,18 +32,14 @@ def main():
     st.title('Palm Oil Detection and Counting')
     st.sidebar.title("Settings")
 
-    # Select YOLO weight file
+    # Upload YOLO weight file
     model_path = st.sidebar.file_uploader("Upload a YOLO model (.pt)", type=['pt'])
     if not model_path:
         st.warning("Please upload a YOLO model to continue.")
         return
 
-    # Device selection
-    device_option = 'cuda' if torch.cuda.is_available() else 'cpu'
-    device = st.sidebar.radio("Select Device", ['cpu', 'cuda'], disabled=not torch.cuda.is_available(), index=0)
-
     # Load model
-    model = load_model(model_path, device)
+    model = load_model(model_path)
 
     # Confidence slider
     conf_threshold = st.sidebar.slider("Confidence Threshold", min_value=0.1, max_value=1.0, value=0.5)
