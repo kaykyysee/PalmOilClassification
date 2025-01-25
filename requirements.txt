@@ -1,9 +1,5 @@
-# Streamlit dependencies
 streamlit
-
-# YOLO and vision dependencies
 ultralytics
-opencv-python-headless==4.5.5.64
 pillow
 numpy
 requests
