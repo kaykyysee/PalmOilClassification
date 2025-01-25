@@ -1,23 +1,11 @@
 import os
 import streamlit as st
 from ultralytics import YOLO
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy as np
 import requests
 
-# Workaround to prevent OpenCV libGL errors
-os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
-os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "0"
-
 st.set_page_config(layout="wide")
-
-# Define class names and their corresponding colors
-class_names = {0: 'Deformed', 1: 'Ripe', 2: 'Raw'}
-class_colors = {
-    'Deformed': (0, 0, 255),        # Red
-    'Ripe': (0, 100, 0),           # Dark Green
-    'Raw': (255, 0, 0)             # Blue
-}
 
 # Function to load YOLO model
 @st.experimental_singleton
@@ -31,15 +19,23 @@ def load_model(model_url=None, local_path=None):
         else:
             st.error("Model file not found! Please upload or provide a URL.")
             st.stop()
-    # Load YOLO model
     return YOLO(model_path)
 
-# Inference function
+# Inference function using PIL for visualization
 def infer_image(image, model, conf_threshold):
     model.conf = conf_threshold
     results = model(image)  # Perform inference
-    results.render()  # Render annotations to the image
-    return Image.fromarray(results.ims[0])
+
+    # Annotate image using PIL
+    annotated_image = Image.fromarray(image)
+    draw = ImageDraw.Draw(annotated_image)
+
+    for result in results:
+        for box in result.boxes.xyxy:
+            x1, y1, x2, y2 = map(int, box[:4])
+            draw.rectangle([x1, y1, x2, y2], outline="red", width=3)
+
+    return annotated_image
 
 # Main Streamlit app
 def main():
@@ -70,7 +66,7 @@ def main():
     conf_threshold = st.sidebar.slider("Confidence Threshold", min_value=0.1, max_value=1.0, value=0.5)
 
     # Input type selection
-    input_type = st.sidebar.radio("Input Type", ['Image', 'Video'])
+    input_type = st.sidebar.radio("Input Type", ['Image'])
 
     if input_type == 'Image':
         # Upload image
@@ -85,9 +81,6 @@ def main():
             # Perform inference
             result_image = infer_image(image_np, model, conf_threshold)
             st.image(result_image, caption="Detected Image", use_column_width=True)
-
-    elif input_type == 'Video':
-        st.warning("Video input functionality is under development.")
 
 if __name__ == "__main__":
     main()
