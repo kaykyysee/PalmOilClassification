@@ -1,19 +1,15 @@
+import os
 import streamlit as st
 from ultralytics import YOLO
 from PIL import Image
 import numpy as np
 import requests
-import os
+
+# Set OpenCV to use headless mode
+os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
+os.environ["OPENCV_VIDEOIO_PRIORITY_GSTREAMER"] = "1"
 
 st.set_page_config(layout="wide")
-
-# Define class names and their corresponding colors
-class_names = {0: 'Deformed', 1: 'Ripe', 2: 'Raw'}
-class_colors = {
-    'Deformed': (0, 0, 255),        # Red
-    'Ripe': (0, 100, 0),           # Dark Green
-    'Raw': (255, 0, 0)             # Blue
-}
 
 # Function to load YOLO model
 @st.experimental_singleton
@@ -27,7 +23,6 @@ def load_model(model_url=None, local_path=None):
         else:
             st.error("Model file not found! Please upload or provide a URL.")
             st.stop()
-    # Load YOLO model
     return YOLO(model_path)
 
 # Inference function
