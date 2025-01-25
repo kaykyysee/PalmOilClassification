@@ -1,10 +1,9 @@
 import streamlit as st
 from ultralytics import YOLO
-import cv2
 from PIL import Image
 import numpy as np
-import os
 import requests
+import os
 
 st.set_page_config(layout="wide")
 
@@ -16,14 +15,19 @@ class_colors = {
     'Raw': (255, 0, 0)             # Blue
 }
 
-# Function to load YOLO model from a URL
+# Function to load YOLO model
 @st.experimental_singleton
-def load_model(model_url: str):
-    model_path = "best.pt"
+def load_model(model_url=None, local_path=None):
+    model_path = local_path or "best.pt"
+    # If model file does not exist locally, download it
     if not os.path.exists(model_path):
-        st.write("Downloading model...")
-        with open(model_path, "wb") as f:
-            f.write(requests.get(model_url).content)
+        if model_url:
+            with open(model_path, "wb") as f:
+                f.write(requests.get(model_url).content)
+        else:
+            st.error("Model file not found! Please upload or provide a URL.")
+            st.stop()
+    # Load YOLO model
     return YOLO(model_path)
 
 # Inference function
@@ -33,25 +37,35 @@ def infer_image(image, model, conf_threshold):
     results.render()  # Render annotations to the image
     return Image.fromarray(results.ims[0])
 
-# Main Streamlit interface
+# Main Streamlit app
 def main():
     st.title('Palm Oil Detection and Counting')
     st.sidebar.title("Settings")
 
-    # URL to download YOLO model
-    model_url = st.sidebar.text_input("Enter model URL:", "https://your-cloud-storage-url/best.pt")
+    # Select YOLO model
+    model_source = st.sidebar.radio("Model Source", ["Upload", "From URL"])
+    model_url = None
+    local_model_path = None
 
-    # Load YOLO model
-    if model_url:
-        model = load_model(model_url)
-    else:
-        st.warning("Please provide a valid URL for the YOLO model.")
-        return
+    if model_source == "Upload":
+        uploaded_model = st.sidebar.file_uploader("Upload a YOLO model (.pt)", type=['pt'])
+        if uploaded_model:
+            local_model_path = f"uploaded_{uploaded_model.name}"
+            with open(local_model_path, "wb") as f:
+                f.write(uploaded_model.read())
+    elif model_source == "From URL":
+        model_url = st.sidebar.text_input("Enter the model URL")
+        if not model_url:
+            st.warning("Please provide a URL for the YOLO model.")
+            return
 
-    # Confidence slider
+    # Load model
+    model = load_model(model_url=model_url, local_path=local_model_path)
+
+    # Confidence threshold
     conf_threshold = st.sidebar.slider("Confidence Threshold", min_value=0.1, max_value=1.0, value=0.5)
 
-    # Input selection
+    # Input type selection
     input_type = st.sidebar.radio("Input Type", ['Image', 'Video'])
 
     if input_type == 'Image':
